@@ -158,10 +158,13 @@ function heartY(t) {
 const centerX = window.innerWidth / 2;
 const centerY = window.innerHeight / 2;
 
-for (let i = 0; i < 1000; i++) {
-  let t = (i / 1000) * 2 * Math.PI;
+// 1500 partikel padat
+for (let i = 0; i < 1500; i++) {
+  let t = (i / 1500) * 2 * Math.PI;
   let x = heartX(t) * 18 + centerX;
   let y = -heartY(t) * 18 + centerY;
+  
+  const willMoveToCenter = i % 7 === 0;
   
   heartParticles.push({
     x: x,
@@ -170,20 +173,21 @@ for (let i = 0; i < 1000; i++) {
     originY: y,
     targetX: centerX,
     targetY: centerY,
-    vx: 0,
-    vy: 0,
-    size: Math.random() * 1.5 + 0.8,
+    willMoveToCenter: willMoveToCenter,
+    size: Math.random() * 1.5 + 1.5,
     alpha: 0,
-    state: 'forming'
+    pulse: Math.random() * Math.PI * 2,
+    speed: Math.random() * 0.8 + 1.2 // SPEED DINAIKIN
   });
 }
 
+// 55 kupu-kupu
 for (let i = 0; i < 55; i++) {
   butterflies.push({
     x: Math.random() * canvas.width,
     y: Math.random() * canvas.height,
-    vx: (Math.random() - 0.5) * 10,
-    vy: (Math.random() - 0.5) * 10,
+    vx: (Math.random() - 0.5) * 12,
+    vy: (Math.random() - 0.5) * 12,
     angle: Math.random() * Math.PI * 2,
     wingPhase: Math.random() * Math.PI * 2,
     size: 5 + Math.random() * 3,
@@ -221,7 +225,7 @@ function drawButterfly(b, alpha) {
 
   ctx.restore();
 
-  if (Math.random() < 0.3) {
+  if (Math.random() < 0.35) {
     b.pollen.push({
       x: b.x + (Math.random() - 0.5) * 12,
       y: b.y + (Math.random() - 0.5) * 12,
@@ -234,13 +238,13 @@ function drawPollen() {
   butterflies.forEach(b => {
     b.pollen = b.pollen.filter(p => {
       p.life--;
-      p.y += 1;
+      p.y += 1.2;
       const alpha = p.life / 25;
       ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
-      ctx.shadowBlur = 12;
+      ctx.shadowBlur = 15;
       ctx.shadowColor = '#ffd700';
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 1.8, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
       return p.life > 0;
@@ -254,7 +258,7 @@ function startButterflyAnimation() {
 }
 
 function animate() {
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   if (animationPhase === 'butterfly') {
@@ -264,10 +268,10 @@ function animate() {
     butterflies.forEach(b => {
       b.x += b.vx;
       b.y += b.vy;
-      b.vx += (Math.random() - 0.5) * 0.6;
-      b.vy += (Math.random() - 0.5) * 0.6;
-      b.angle += 0.1;
-      b.wingPhase += 0.5;
+      b.vx += (Math.random() - 0.5) * 0.8;
+      b.vy += (Math.random() - 0.5) * 0.8;
+      b.angle += 0.12;
+      b.wingPhase += 0.6;
 
       if (b.x < -50 || b.x > canvas.width + 50) b.vx *= -1;
       if (b.y < -50 || b.y > canvas.height + 50) b.vy *= -1;
@@ -285,61 +289,66 @@ function animate() {
 
   else if (animationPhase === 'heart') {
     frame++;
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.06)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     heartParticles.forEach(p => {
-      if (frame < 60) {
-        p.alpha = Math.min(frame / 60, 1);
+      p.pulse += 0.25 * p.speed;
+      
+      if (frame < 80) {
+        p.alpha = Math.min(frame / 80, 1);
         p.x = p.originX;
         p.y = p.originY;
-        p.state = 'forming';
-      }
-      
-      else if (frame < 120) {
-        const progress = (frame - 60) / 60;
-        p.x = p.originX + (p.targetX - p.originX) * progress;
-        p.y = p.originY + (p.targetY - p.originY) * progress;
-        p.alpha = 1;
-        p.state = 'moving';
       }
       
       else {
-        p.state = 'aura';
-        const auraTime = frame - 120;
-        
-        p.x = p.targetX + Math.sin(auraTime * 0.1 + p.originX * 0.01) * 15;
-        p.y = p.targetY + Math.cos(auraTime * 0.08 + p.originY * 0.01) * 25;
-        
-        ctx.shadowBlur = 25;
-        ctx.shadowColor = '#ff0000';
-        ctx.fillStyle = `rgba(255, ${Math.random() * 80}, ${Math.random() * 80}, 0.8)`;
-        
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.fillStyle = `rgba(255, 0, 0, 0.3)`;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2);
-        ctx.fill();
+        if (p.willMoveToCenter) {
+          const progress = Math.min((frame - 80) / 60, 1);
+          p.x = p.originX + (p.targetX - p.originX) * progress;
+          p.y = p.originY + (p.targetY - p.originY) * progress;
+          
+          if (progress >= 1) {
+            p.x = p.targetX + Math.sin(p.pulse) * 8;
+            p.y = p.targetY + Math.cos(p.pulse * 0.9) * 12;
+            
+            ctx.shadowBlur = 50;
+            ctx.shadowColor = '#ff0000';
+            ctx.fillStyle = `rgba(255, 30, 30, 0.95)`;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size + 4, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = `rgba(255, 0, 0, 0.6)`;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size * 6, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        } else {
+          p.x = p.originX + Math.sin(p.pulse * 0.6) * 3;
+          p.y = p.originY + Math.cos(p.pulse * 0.6) * 3;
+          
+          ctx.shadowBlur = 30;
+          ctx.shadowColor = '#ff0000';
+          ctx.fillStyle = `rgba(255, 0, 0, 0.95)`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
         
         ctx.shadowBlur = 0;
         return;
       }
 
-      if (p.state !== 'aura') {
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = '#ff0000';
-        ctx.fillStyle = `rgba(255, 0, 0, ${p.alpha})`;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      }
+      ctx.shadowBlur = 25;
+      ctx.shadowColor = '#ff0000';
+      ctx.fillStyle = `rgba(255, 0, 0, ${p.alpha})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
     });
 
-    if (frame < 1120) {
+    if (frame < 1200) {
       requestAnimationFrame(animate);
     } else {
       hideLoading();
