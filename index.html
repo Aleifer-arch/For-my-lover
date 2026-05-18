@@ -156,7 +156,7 @@ function heartY(t) {
 }
 
 for (let i = 0; i < 1200; i++) {
-  let t = (i / 800) * 2 * Math.PI;
+  let t = (i / 1200) * 2 * Math.PI;
   let x = heartX(t) * 18 + canvas.width / 2;
   let y = -heartY(t) * 18 + canvas.height / 2;
   
@@ -165,23 +165,23 @@ for (let i = 0; i < 1200; i++) {
     y: y,
     originX: x,
     originY: y,
-    vx: (Math.random() - 0.5) * 3,
-    vy: (Math.random() - 0.5) * 3,
-    size: Math.random() * 2.5 + 1,
+    vx: (Math.random() - 0.5) * 8,
+    vy: (Math.random() - 0.5) * 8,
+    size: Math.random() * 2 + 0.5,
     alpha: 0,
-    delay: Math.random() * 200
+    pulse: Math.random() * Math.PI * 2
   });
 }
 
-for (let i = 0; i < 35; i++) {
+for (let i = 0; i < 55; i++) {
   butterflies.push({
     x: Math.random() * canvas.width,
     y: Math.random() * canvas.height,
-    vx: (Math.random() - 0.5) * 8,
-    vy: (Math.random() - 0.5) * 8,
+    vx: (Math.random() - 0.5) * 10,
+    vy: (Math.random() - 0.5) * 10,
     angle: Math.random() * Math.PI * 2,
     wingPhase: Math.random() * Math.PI * 2,
-    size: 6 + Math.random() * 3,
+    size: 5 + Math.random() * 3,
     pollen: []
   });
 }
@@ -201,12 +201,12 @@ function drawButterfly(b, alpha) {
   ctx.ellipse(b.size/2, 0, b.size, b.size*0.7, 0.3, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = '#cccccc';
+  ctx.fillStyle = '#e0e0e0';
   ctx.beginPath();
   ctx.ellipse(0, 0, b.size*0.2, b.size*0.5, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
   ctx.beginPath();
   ctx.ellipse(-b.size/2, 0, b.size*0.8, b.size*0.5, -0.3 + Math.sin(b.wingPhase) * 0.7, 0, Math.PI * 2);
   ctx.fill();
@@ -216,11 +216,11 @@ function drawButterfly(b, alpha) {
 
   ctx.restore();
 
-  if (Math.random() < 0.25) {
+  if (Math.random() < 0.3) {
     b.pollen.push({
-      x: b.x + (Math.random() - 0.5) * 10,
-      y: b.y + (Math.random() - 0.5) * 10,
-      life: 30
+      x: b.x + (Math.random() - 0.5) * 12,
+      y: b.y + (Math.random() - 0.5) * 12,
+      life: 25
     });
   }
 }
@@ -229,13 +229,13 @@ function drawPollen() {
   butterflies.forEach(b => {
     b.pollen = b.pollen.filter(p => {
       p.life--;
-      p.y += 0.8;
-      const alpha = p.life / 30;
+      p.y += 1;
+      const alpha = p.life / 25;
       ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
-      ctx.shadowBlur = 15;
+      ctx.shadowBlur = 12;
       ctx.shadowColor = '#ffd700';
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, 1.8, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
       return p.life > 0;
@@ -249,7 +249,7 @@ function startButterflyAnimation() {
 }
 
 function animate() {
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   if (animationPhase === 'butterfly') {
@@ -259,10 +259,10 @@ function animate() {
     butterflies.forEach(b => {
       b.x += b.vx;
       b.y += b.vy;
-      b.vx += (Math.random() - 0.5) * 0.5;
-      b.vy += (Math.random() - 0.5) * 0.5;
-      b.angle += 0.08;
-      b.wingPhase += 0.4;
+      b.vx += (Math.random() - 0.5) * 0.6;
+      b.vy += (Math.random() - 0.5) * 0.6;
+      b.angle += 0.1;
+      b.wingPhase += 0.5;
 
       if (b.x < -50 || b.x > canvas.width + 50) b.vx *= -1;
       if (b.y < -50 || b.y > canvas.height + 50) b.vy *= -1;
@@ -270,7 +270,7 @@ function animate() {
       drawButterfly(b, 1);
     });
 
-    if (frame >= 600) {
+    if (frame >= 400) {
       animationPhase = 'heart';
       frame = 0;
     }
@@ -281,47 +281,40 @@ function animate() {
   else if (animationPhase === 'heart') {
     frame++;
 
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
+    if (frame < 40) {
+      const burstProgress = frame / 40;
+      
+      heartParticles.forEach(p => {
+        const distance = burstProgress * (1 + Math.random() * 0.5);
+        p.x = p.originX + p.vx * distance * 40;
+        p.y = p.originY + p.vy * distance * 40;
+        p.alpha = Math.min(burstProgress * 2, 1);
+      });
+    }
     
-    ctx.strokeStyle = 'rgba(255, 0, 0, 0.6)';
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = '#ff0000';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY - 250);
-    ctx.lineTo(centerX, centerY + 250);
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-
     heartParticles.forEach(p => {
-      if (frame > p.delay) {
-        const progress = Math.min((frame - p.delay) / 150, 1);
-        const pullBack = 1 - Math.pow(progress - 1, 2);
-        
-        p.x = p.originX + p.vx * pullBack * 30;
-        p.y = p.originY + p.vy * pullBack * 30;
-        p.alpha = Math.min(progress * 1.5, 1);
-
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = '#ff0000';
-        ctx.fillStyle = `rgba(255, 0, 0, ${p.alpha})`;
-        
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      }
+      p.pulse += 0.1;
+      
+      const floatX = Math.sin(p.pulse) * 3;
+      const floatY = Math.cos(p.pulse * 0.8) * 3;
+      
+      const finalX = p.x + floatX;
+      const finalY = p.y + floatY;
+      
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = '#ff0000';
+      ctx.fillStyle = `rgba(255, ${Math.random() * 50}, ${Math.random() * 50}, ${p.alpha})`;
+      
+      ctx.beginPath();
+      ctx.arc(finalX, finalY, p.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
     });
 
-    if (frame < 350) {
-      requestAnimationFrame(animate);
-    } else {
-      setTimeout(hideLoading, 1500);
-    }
+    requestAnimationFrame(animate);
   }
 }
 
@@ -339,8 +332,8 @@ window.addEventListener('resize', () => {
   canvas.height = window.innerHeight;
 
   heartParticles = [];
-  for (let i = 0; i < 800; i++) {
-    let t = (i / 800) * 2 * Math.PI;
+  for (let i = 0; i < 1200; i++) {
+    let t = (i / 1200) * 2 * Math.PI;
     let x = heartX(t) * 18 + canvas.width / 2;
     let y = -heartY(t) * 18 + canvas.height / 2;
     
@@ -349,11 +342,11 @@ window.addEventListener('resize', () => {
       y: y,
       originX: x,
       originY: y,
-      vx: (Math.random() - 0.5) * 3,
-      vy: (Math.random() - 0.5) * 3,
-      size: Math.random() * 2.5 + 1,
-      alpha: 0,
-      delay: Math.random() * 200
+      vx: (Math.random() - 0.5) * 8,
+      vy: (Math.random() - 0.5) * 8,
+      size: Math.random() * 2 + 0.5,
+      alpha: 1,
+      pulse: Math.random() * Math.PI * 2
     });
   }
 });
