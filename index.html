@@ -2,373 +2,134 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>Loading - Xaephierra</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Love Particles</title>
 <style>
-    * {
+  html, body {
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
-  }
-
-  body {
-    background: #000;
     overflow: hidden;
-    font-family: 'Consolas', 'Monospace';
-  }
-
-  #loading-screen {
-    position: fixed;
-    width: 100%;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
     background: #000;
-    z-index: 9999;
-    transition: opacity 1s ease-out;
+    height: 100%;
   }
-
-  #code-display {
-    color: #ff7b72;
-    font-size: 14px;
-    text-align: left;
-    max-width: 90%;
-    max-height: 80vh;
-    overflow: hidden;
-    white-space: pre-wrap;
-    transition: opacity 1s ease-out;
-  }
-
-  #heart-container {
-    display: none;
-    flex-direction: column;
-    align-items: center;
-  }
-
   canvas {
     display: block;
   }
-
-.loading-text {
-    color: #ff2d55;
-    font-size: 20px;
-    margin-top: 20px;
-    letter-spacing: 3px;
-    animation: blink 1.2s infinite;
-    font-family: 'Segoe UI', sans-serif;
-    font-weight: 600;
-  }
-
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
-
-.keyword { color: #ff7b72; }
-.function { color: #d2a8ff; }
-.string { color: #a5d6ff; }
-.number { color: #79c0ff; }
-.comment { color: #8d96a0; }
-.builtin { color: #ffa657; }
 </style>
 </head>
 <body>
-
-<div id="loading-screen">
-  <pre id="code-display"></pre>
-
-  <div id="heart-container">
-    <canvas id="heartCanvas"></canvas>
-    <div class="loading-text">Loading...</div>
-  </div>
-</div>
+<canvas id="canvas"></canvas>
 
 <script>
-const code = `import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-
-def hearta( k ):
-    return 15 * np.sin(k)**3
-
-def heartb( k ):
-    return 12*np.cos(k) - 5*np.cos(2*k) - 2*np.cos(3*k) - np.cos(4*k)
-
-fig, ax = plt.subplots()
-fig.patch.set_facecolor('black')
-ax.set_facecolor('black')
-ax.set_xlim(-350, 350)
-ax.set_ylim(-350, 350)
-ax.set_aspect('equal')
-ax.axis('off')`;
-
-const codeDisplay = document.getElementById('code-display');
-let i = 0;
-const typingSpeed = 20;
-
-function highlightCode(code) {
-  return code
-  .replace(/(\#.*)/g, '<span class="comment">$1</span>')
-  .replace(/\b(def|import|return|for|in|if|from|as)\b/g, '<span class="keyword">$1</span>')
-  .replace(/\b(np|plt|animation|fig|ax)\b/g, '<span class="builtin">$1</span>')
-  .replace(/\b(hearta|heartb|animate)\b/g, '<span class="function">$1</span>')
-  .replace(/('[^']*')/g, '<span class="string">$1</span>')
-  .replace(/\b(\d+)\b/g, '<span class="number">$1</span>');
-}
-
-function typeCode() {
-  if (i < code.length) {
-    const currentCode = code.substring(0, i + 1);
-    codeDisplay.innerHTML = highlightCode(currentCode);
-    i++;
-    setTimeout(typeCode, typingSpeed);
-  } else {
-    setTimeout(showButterflyAnimation, 1500);
-  }
-}
-
-function showButterflyAnimation() {
-  document.getElementById('code-display').style.opacity = '0';
-  setTimeout(() => {
-    document.getElementById('code-display').style.display = 'none';
-    document.getElementById('heart-container').style.display = 'flex';
-    startButterflyAnimation();
-  }, 1000);
-}
-
-const canvas = document.getElementById('heartCanvas');
+const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
 
-let frame = 0;
-let animationPhase = 'butterfly';
-let butterflies = [];
-let heartParticles = [];
+let width = window.innerWidth;
+let height = window.innerHeight;
+canvas.width = width;
+canvas.height = height;
 
-function heartX(t) {
-  return 16 * Math.pow(Math.sin(t), 3);
-}
+const particleCount = 800;
+const particles = [];
+const duration = 120000;
+const startTime = Date.now();
+let animationDone = false;
 
-function heartY(t) {
-  return 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
-}
+class Particle {
+  constructor(targetX, targetY) {
+    this.x = Math.random() * width;
+    this.y = Math.random() * height;
+    this.targetX = targetX;
+    this.targetY = targetY;
+    this.size = Math.random() * 1.5 + 1;
+    this.speed = 0.03 + Math.random() * 0.02;
+    this.vx = 0;
+    this.vy = 0;
+    this.glow = Math.random() * 0.5 + 0.5;
+  }
 
-const centerX = window.innerWidth / 2;
-const centerY = window.innerHeight / 2;
+  update(progress) {
+    if (progress < 1) {
+      const dx = this.targetX - this.x;
+      const dy = this.targetY - this.y;
+      this.vx += dx * this.speed * 0.01;
+      this.vy += dy * this.speed * 0.01;
+      this.vx *= 0.93;
+      this.vy *= 0.93;
+      this.x += this.vx;
+      this.y += this.vy;
+    }
+  }
 
-// 1500 partikel padat
-for (let i = 0; i < 1500; i++) {
-  let t = (i / 1500) * 2 * Math.PI;
-  let x = heartX(t) * 18 + centerX;
-  let y = -heartY(t) * 18 + centerY;
-  
-  const willMoveToCenter = i % 7 === 0;
-  
-  heartParticles.push({
-    x: x,
-    y: y,
-    originX: x,
-    originY: y,
-    targetX: centerX,
-    targetY: centerY,
-    willMoveToCenter: willMoveToCenter,
-    size: Math.random() * 1.5 + 1.5,
-    alpha: 0,
-    pulse: Math.random() * Math.PI * 2,
-    speed: Math.random() * 0.8 + 1.2 // SPEED DINAIKIN
-  });
-}
-
-// 55 kupu-kupu
-for (let i = 0; i < 55; i++) {
-  butterflies.push({
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
-    vx: (Math.random() - 0.5) * 12,
-    vy: (Math.random() - 0.5) * 12,
-    angle: Math.random() * Math.PI * 2,
-    wingPhase: Math.random() * Math.PI * 2,
-    size: 5 + Math.random() * 3,
-    pollen: []
-  });
-}
-
-function drawButterfly(b, alpha) {
-  ctx.save();
-  ctx.translate(b.x, b.y);
-  ctx.rotate(b.angle);
-  ctx.globalAlpha = alpha;
-
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath();
-  ctx.ellipse(-b.size/2, 0, b.size, b.size*0.7, -0.3, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.ellipse(b.size/2, 0, b.size, b.size*0.7, 0.3, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = '#e0e0e0';
-  ctx.beginPath();
-  ctx.ellipse(0, 0, b.size*0.2, b.size*0.5, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-  ctx.beginPath();
-  ctx.ellipse(-b.size/2, 0, b.size*0.8, b.size*0.5, -0.3 + Math.sin(b.wingPhase) * 0.7, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(b.size/2, 0, b.size*0.8, b.size*0.5, 0.3 - Math.sin(b.wingPhase) * 0.7, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.restore();
-
-  if (Math.random() < 0.35) {
-    b.pollen.push({
-      x: b.x + (Math.random() - 0.5) * 12,
-      y: b.y + (Math.random() - 0.5) * 12,
-      life: 25
-    });
+  draw() {
+    ctx.shadowBlur = 12 * this.glow;
+    ctx.shadowColor = '#ff1a1a';
+    ctx.fillStyle = '#ff2b2b';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
   }
 }
 
-function drawPollen() {
-  butterflies.forEach(b => {
-    b.pollen = b.pollen.filter(p => {
-      p.life--;
-      p.y += 1.2;
-      const alpha = p.life / 25;
-      ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
-      ctx.shadowBlur = 15;
-      ctx.shadowColor = '#ffd700';
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      return p.life > 0;
-    });
-  });
+function generateHeartOutline(count) {
+  const points = [];
+  const scale = Math.min(width, height) / 28;
+
+  for (let i = 0; i < count; i++) {
+    const t = (Math.PI * 2 / count) * i;
+    const x = 16 * Math.pow(Math.sin(t), 3);
+    const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+
+    const offset = 0.8;
+    const rx = x + (Math.random() - 0.5) * offset;
+    const ry = y + (Math.random() - 0.5) * offset;
+
+    const canvasX = width / 2 + rx * scale;
+    const canvasY = height / 2 - ry * scale;
+    points.push({x: canvasX, y: canvasY});
+  }
+  return points;
 }
 
-function startButterflyAnimation() {
-  frame = 0;
-  animate();
+const points = generateHeartOutline(particleCount);
+for (let i = 0; i < particleCount; i++) {
+  particles.push(new Particle(points[i].x, points[i].y));
 }
 
 function animate() {
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const elapsed = Date.now() - startTime;
+  const progress = Math.min(elapsed / duration, 1);
 
-  if (animationPhase === 'butterfly') {
-    frame++;
-    drawPollen();
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+  ctx.fillRect(0, 0, width, height);
 
-    butterflies.forEach(b => {
-      b.x += b.vx;
-      b.y += b.vy;
-      b.vx += (Math.random() - 0.5) * 0.8;
-      b.vy += (Math.random() - 0.5) * 0.8;
-      b.angle += 0.12;
-      b.wingPhase += 0.6;
-
-      if (b.x < -50 || b.x > canvas.width + 50) b.vx *= -1;
-      if (b.y < -50 || b.y > canvas.height + 50) b.vy *= -1;
-
-      drawButterfly(b, 1);
-    });
-
-    if (frame >= 400) {
-      animationPhase = 'heart';
-      frame = 0;
-    }
-
-    requestAnimationFrame(animate);
+  for (let p of particles) {
+    p.update(progress);
+    p.draw();
   }
 
-  else if (animationPhase === 'heart') {
-    frame++;
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.06)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    heartParticles.forEach(p => {
-      p.pulse += 0.25 * p.speed;
-      
-      if (frame < 80) {
-        p.alpha = Math.min(frame / 80, 1);
-        p.x = p.originX;
-        p.y = p.originY;
-      }
-      
-      else {
-        if (p.willMoveToCenter) {
-          const progress = Math.min((frame - 80) / 60, 1);
-          p.x = p.originX + (p.targetX - p.originX) * progress;
-          p.y = p.originY + (p.targetY - p.originY) * progress;
-          
-          if (progress >= 1) {
-            p.x = p.targetX + Math.sin(p.pulse) * 8;
-            p.y = p.targetY + Math.cos(p.pulse * 0.9) * 12;
-            
-            ctx.shadowBlur = 50;
-            ctx.shadowColor = '#ff0000';
-            ctx.fillStyle = `rgba(255, 30, 30, 0.95)`;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size + 4, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.fillStyle = `rgba(255, 0, 0, 0.6)`;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size * 6, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        } else {
-          p.x = p.originX + Math.sin(p.pulse * 0.6) * 3;
-          p.y = p.originY + Math.cos(p.pulse * 0.6) * 3;
-          
-          ctx.shadowBlur = 30;
-          ctx.shadowColor = '#ff0000';
-          ctx.fillStyle = `rgba(255, 0, 0, 0.95)`;
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        
-        ctx.shadowBlur = 0;
-        return;
-      }
-
-      ctx.shadowBlur = 25;
-      ctx.shadowColor = '#ff0000';
-      ctx.fillStyle = `rgba(255, 0, 0, ${p.alpha})`;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-    });
-
-    if (frame < 1200) {
-      requestAnimationFrame(animate);
-    } else {
-      hideLoading();
-    }
+  if (progress >= 1 &&!animationDone) {
+    animationDone = true;
   }
+
+  requestAnimationFrame(animate);
 }
 
-function hideLoading() {
-  document.getElementById('loading-screen').style.opacity = '0';
-  setTimeout(() => {
-    document.getElementById('loading-screen').style.display = 'none';
-  }, 1000);
-}
-
-typeCode();
+animate();
 
 window.addEventListener('resize', () => {
-  location.reload();
+  width = window.innerWidth;
+  height = window.innerHeight;
+  canvas.width = width;
+  canvas.height = height;
+
+  const newPoints = generateHeartOutline(particleCount);
+  for (let i = 0; i < particles.length; i++) {
+    particles[i].targetX = newPoints[i].x;
+    particles[i].targetY = newPoints[i].y;
+  }
 });
 </script>
-
 </body>
 </html>
