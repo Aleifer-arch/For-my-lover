@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Love Particles</title>
+<title>Love Particles Solid</title>
 <style>
   html, body {
     margin: 0;
@@ -31,7 +31,7 @@ canvas.height = height;
 
 const particleCount = 800;
 const particles = [];
-const duration = 120000;
+const duration = 30000;
 const startTime = Date.now();
 let animationDone = false;
 
@@ -41,28 +41,27 @@ class Particle {
     this.y = Math.random() * height;
     this.targetX = targetX;
     this.targetY = targetY;
-    this.size = Math.random() * 1.5 + 1;
-    this.speed = 0.03 + Math.random() * 0.02;
+    this.size = Math.random() * 1.2 + 0.8;
+    this.speed = 0.04 + Math.random() * 0.02;
     this.vx = 0;
     this.vy = 0;
-    this.glow = Math.random() * 0.5 + 0.5;
   }
 
   update(progress) {
     if (progress < 1) {
       const dx = this.targetX - this.x;
       const dy = this.targetY - this.y;
-      this.vx += dx * this.speed * 0.01;
-      this.vy += dy * this.speed * 0.01;
-      this.vx *= 0.93;
-      this.vy *= 0.93;
+      this.vx += dx * this.speed * 0.015;
+      this.vy += dy * this.speed * 0.015;
+      this.vx *= 0.92;
+      this.vy *= 0.92;
       this.x += this.vx;
       this.y += this.vy;
     }
   }
 
   draw() {
-    ctx.shadowBlur = 12 * this.glow;
+    ctx.shadowBlur = 8;
     ctx.shadowColor = '#ff1a1a';
     ctx.fillStyle = '#ff2b2b';
     ctx.beginPath();
@@ -72,27 +71,36 @@ class Particle {
   }
 }
 
-function generateHeartOutline(count) {
+function generateSolidHeart(count) {
   const points = [];
-  const scale = Math.min(width, height) / 28;
+  const scale = Math.min(width, height) / 35;
+  const centerX = width / 2;
+  const centerY = height / 2;
 
   for (let i = 0; i < count; i++) {
-    const t = (Math.PI * 2 / count) * i;
-    const x = 16 * Math.pow(Math.sin(t), 3);
-    const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+    let x, y;
+    do {
+      x = (Math.random() * 2 - 1) * 16;
+      y = (Math.random() * 2 - 1) * 16;
+    } while (!isInsideHeart(x, y));
 
-    const offset = 0.8;
-    const rx = x + (Math.random() - 0.5) * offset;
-    const ry = y + (Math.random() - 0.5) * offset;
-
-    const canvasX = width / 2 + rx * scale;
-    const canvasY = height / 2 - ry * scale;
-    points.push({x: canvasX, y: canvasY});
+    points.push({
+      x: centerX + x * scale,
+      y: centerY - y * scale + scale * 1.2
+    });
   }
   return points;
 }
 
-const points = generateHeartOutline(particleCount);
+function isInsideHeart(x, y) {
+  // Persamaan heart solid
+  const a = x / 16;
+  const b = y / 16;
+  return Math.pow(a*a + b*b - 1, 3) - a*a*b <= 0;
+}
+
+// Init
+const points = generateSolidHeart(particleCount);
 for (let i = 0; i < particleCount; i++) {
   particles.push(new Particle(points[i].x, points[i].y));
 }
@@ -101,7 +109,7 @@ function animate() {
   const elapsed = Date.now() - startTime;
   const progress = Math.min(elapsed / duration, 1);
 
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
   ctx.fillRect(0, 0, width, height);
 
   for (let p of particles) {
@@ -124,7 +132,7 @@ window.addEventListener('resize', () => {
   canvas.width = width;
   canvas.height = height;
 
-  const newPoints = generateHeartOutline(particleCount);
+  const newPoints = generateSolidHeart(particleCount);
   for (let i = 0; i < particles.length; i++) {
     particles[i].targetX = newPoints[i].x;
     particles[i].targetY = newPoints[i].y;
