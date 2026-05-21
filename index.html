@@ -31,7 +31,7 @@ canvas.height = height;
 
 const particleCount = 800;
 const particles = [];
-const formDuration = 20000;
+const formDuration = 50000;
 const totalDuration = 180000;
 const startTime = Date.now();
 
@@ -98,7 +98,6 @@ function isInsideHeart(x, y) {
   return Math.pow(a*a + b*b - 1, 3) - a*a*b <= 0;
 }
 
-// Init
 const points = generatePerfectHeart(particleCount);
 for (let i = 0; i < particleCount; i++) {
   particles.push(new Particle(points[i].x, points[i].y));
