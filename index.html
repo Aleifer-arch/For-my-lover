@@ -1,134 +1,219 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Love Mobile</title>
+<title>Loading Animation</title>
 <style>
-  html, body {
+  body {
     margin: 0;
-    padding: 0;
+    background: #0d1117;
+    color: #c9d1d9;
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 14px;
     overflow: hidden;
-    background: #000;
-    height: 100%;
-    touch-action: none;
+  }
+  #terminal {
+    padding: 20px;
+    white-space: pre;
+    height: 100vh;
+    box-sizing: border-box;
   }
   canvas {
-    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: none;
+  }
+ .cursor {
+    display: inline-block;
+    width: 10px;
+    background: #c9d1d9;
+    animation: blink 1s step-start infinite;
+  }
+  @keyframes blink {
+    50% { opacity: 0; }
   }
 </style>
 </head>
 <body>
+<div id="terminal"><span class="cursor"></span></div>
 <canvas id="canvas"></canvas>
+
 <script>
+const code = `import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+
+def hearta( k ):
+    return 15 * np.sin(k)**3
+
+def heartb( k ):
+    return 12*np.cos(k) - 5*np.cos(2*k) - 2*np.cos(3*k) - np.cos(4*k)
+
+fig, ax = plt.subplots()
+fig.patch.set_facecolor('black')
+ax.set_facecolor('black')
+ax.set_xlim(-350, 350)
+ax.set_ylim(-350, 350)
+ax.set_aspect('equal')
+ax.axis('off')
+
+total_frames = 600
+t = np.linspace(0, 12*np.pi, total_frames)
+x_heart = hearta(t) * 20
+y_heart = heartb(t) * 20
+
+points, = ax.plot([], [], 'ro', markersize=2)
+lines, = ax.plot([], [], 'r-', lw=0.5, alpha=0.3)
+
+def animate(i):
+    xi = x_heart[ : i]
+    yi = y_heart[ : i]
+    x_lines = []
+    y_lines = []
+    for j in range(i):
+        x_lines.extend ( [0, x_heart[j], None])
+        y_lines.extend ( [0, y_heart[j], None])
+    points.set_data(xi, yi)
+    lines.set_data(x_lines, y_lines)
+    return points, lines
+
+ani = animation.FuncAnimation(fig, animate, frames=total_frames, interval=10, blit=True, repeat=False)
+
+plt.show( )`;
+
+const terminal = document.getElementById('terminal');
+const cursor = document.querySelector('.cursor');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
-function resize() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-resize();
-window.addEventListener('resize', resize);
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-let width = canvas.width;
-let height = canvas.height;
-
-const particleCount = 600;
-const particles = [];
-const formDuration = 10000;
-const totalDuration = 180000;
-const startTime = Date.now();
-
-class Particle {
-  constructor(targetX, targetY) {
-    this.x = Math.random() * width;
-    this.y = Math.random() * height;
-    this.targetX = targetX;
-    this.targetY = targetY;
-    this.size = Math.random() * 1.2 + 0.8;
-    this.speed = 0.18 + Math.random() * 0.06;
-    this.vx = 0;
-    this.vy = 0;
-  }
-  update(progress) {
-    if (progress < 1) {
-      const dx = this.targetX - this.x;
-      const dy = this.targetY - this.y;
-      this.vx += dx * this.speed * 0.04;
-      this.vy += dy * this.speed * 0.04;
-      this.vx *= 0.82;
-      this.vy *= 0.82;
-      this.x += this.vx;
-      this.y += this.vy;
-    }
-  }
-  draw() {
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = '#ff1a1a';
-    ctx.fillStyle = '#ff2b2b';
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
+let i = 0;
+function typeCode() {
+  if (i < code.length) {
+    cursor.insertAdjacentText('beforebegin', code[i]);
+    i++;
+    setTimeout(typeCode, 15);
+  } else {
+    cursor.remove();
+    setTimeout(startHeartParticles, 800);
   }
 }
 
-function generateHeart(count) {
-  const points = [];
-  const scale = Math.min(width, height) / 28;
-  const centerX = width / 2;
-  const centerY = height / 2 - scale * 0.5;
-  for (let i = 0; i < count; i++) {
-    let x, y;
-    do {
-      x = (Math.random() * 2 - 1) * 16;
-      y = (Math.random() * 2 - 1) * 16;
-    } while (!isInsideHeart(x, y));
-    points.push({
-      x: centerX + x * scale,
-      y: centerY - y * scale
+function heartFunc(t) {
+  const x = 16 * Math.pow(Math.sin(t), 3);
+  const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+  return {x: x * 15, y: -y * 15};
+}
+
+let particles = [];
+let phase = 'heart';
+
+function startHeartParticles() {
+  terminal.style.display = 'none';
+  canvas.style.display = 'block';
+
+  for (let t = 0; t < Math.PI * 2; t += 0.02) {
+    const p = heartFunc(t);
+    particles.push({
+      x: canvas.width/2 + p.x,
+      y: canvas.height/2 + p.y,
+      tx: canvas.width/2 + p.x,
+      ty: canvas.height/2 + p.y,
+      ox: Math.random() * canvas.width,
+      oy: Math.random() * canvas.height,
+      size: 2,
+      color: '#ff4d4d'
     });
   }
-  return points;
+  animate();
 }
 
-function isInsideHeart(x, y) {
-  const a = x / 16;
-  const b = y / 16;
-  return Math.pow(a*a + b*b - 1, 3) - a*a*b <= 0;
+let butterflies = [];
+let pollen = [];
+
+function startButterflies() {
+  phase = 'butterfly';
+  particles = [];
+  for (let i = 0; i < 15; i++) {
+    butterflies.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 2,
+      vy: (Math.random() - 0.5) * 2,
+      angle: 0
+    });
+  }
+  for (let i = 0; i < 100; i++) {
+    pollen.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: (Math.random() - 0.5) * 0.5,
+      alpha: Math.random()
+    });
+  }
 }
 
-let points = generateHeart(particleCount);
-for (let i = 0; i < particleCount; i++) {
-  particles.push(new Particle(points[i].x, points[i].y));
-}
-
+let frame = 0;
 function animate() {
-  const elapsed = Date.now() - startTime;
-  const progress = Math.min(elapsed / formDuration, 1);
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-  ctx.fillRect(0, 0, width, height);
-  for (let p of particles) {
-    p.update(progress);
-    p.draw();
+  ctx.fillStyle = 'rgba(13, 17, 23, 0.2)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  if (phase === 'heart') {
+    particles.forEach(p => {
+      p.x += (p.tx - p.x) * 0.05;
+      p.y += (p.ty - p.y) * 0.05;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    frame++;
+    if (frame > 180) startButterflies();
   }
-  if (elapsed < totalDuration) {
-    requestAnimationFrame(animate);
+
+  if (phase === 'butterfly') {
+    pollen.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+      if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+      ctx.fillStyle = `rgba(255, 215, 0, ${p.alpha})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    butterflies.forEach(b => {
+      b.x += b.vx;
+      b.y += b.vy;
+      b.angle += 0.1;
+      if (b.x < 0 || b.x > canvas.width) b.vx *= -1;
+      if (b.y < 0 || b.y > canvas.height) b.vy *= -1;
+
+      ctx.save();
+      ctx.translate(b.x, b.y);
+      ctx.rotate(b.angle);
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.ellipse(-8, 0, 6, 12, 0, 0, Math.PI * 2);
+      ctx.ellipse(8, 0, 6, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
   }
+
+  requestAnimationFrame(animate);
 }
 
-animate();
-
-window.addEventListener('resize', () => {
-  width = canvas.width;
-  height = canvas.height;
-  points = generateHeart(particleCount);
-  for (let i = 0; i < particles.length; i++) {
-    particles[i].targetX = points[i].x;
-    particles[i].targetY = points[i].y;
-  }
-});
+window.onload = () => typeCode();
+window.onresize = () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+};
 </script>
 </body>
 </html>
