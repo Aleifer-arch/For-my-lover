@@ -121,7 +121,7 @@ function typeCode() {
     currentLine += lines[lineIndex][i];
     i++;
     terminal.innerHTML = lines.slice(0, lineIndex)
-  .map(l => highlightSyntax(l)).join('<br>') +
+ .map(l => highlightSyntax(l)).join('<br>') +
       '<br>' + highlightSyntax(currentLine) + '<span class="cursor"></span>';
     setTimeout(typeCode, 20);
   } else {
@@ -129,7 +129,7 @@ function typeCode() {
     i = 0;
     lineIndex++;
     terminal.innerHTML = lines.slice(0, lineIndex)
-  .map(l => highlightSyntax(l)).join('<br>') + '<span class="cursor"></span>';
+ .map(l => highlightSyntax(l)).join('<br>') + '<span class="cursor"></span>';
     setTimeout(typeCode, 100);
   }
 }
@@ -157,9 +157,7 @@ function startHeartParticles() {
       ty: canvas.height/2 + p.y,
       vx: 0,
       vy: 0,
-      size: 1.5 + Math.random() * 1.5,
-      alpha: 0.7 + Math.random() * 0.3,
-      arrived: false
+      size: 2 + Math.random() * 1.5
     });
   }
   animate();
@@ -209,13 +207,10 @@ function animate() {
       if (Math.abs(p.x - p.tx) > 2 || Math.abs(p.y - p.ty) > 2) {
         allArrived = false;
       }
-      ctx.shadowBlur = 15;
-      ctx.shadowColor = '#ff4d4d';
-      ctx.fillStyle = `rgba(255, 77, 77, ${p.alpha})`;
+      ctx.fillStyle = '#ff1a1a';
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
       ctx.fill();
-      ctx.shadowBlur = 0;
     });
     frame++;
     if (frame > 240 && allArrived) {
@@ -255,8 +250,6 @@ function animate() {
       ctx.rotate(Math.atan2(b.vy, b.vx));
       const wingAngle = Math.sin(b.wingPhase) * 0.6;
       ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
       ctx.beginPath();
       ctx.ellipse(-b.size * 0.6, 0, b.size * 0.8, b.size, wingAngle, 0, Math.PI * 2);
       ctx.fill();
@@ -267,7 +260,6 @@ function animate() {
       ctx.beginPath();
       ctx.ellipse(0, 0, b.size * 0.2, b.size * 0.4, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.shadowBlur = 0;
       ctx.restore();
     });
   }
