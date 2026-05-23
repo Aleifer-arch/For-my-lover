@@ -7,24 +7,31 @@
   body {
     margin: 0;
     background: #0d1117;
-    color: #c9d1d9;
-    font-family: 'Fira Code', 'Consolas', monospace;
+    font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
     font-size: 14px;
     overflow: hidden;
   }
   #terminal {
     padding: 20px;
-    white-space: pre;
     height: 100vh;
     box-sizing: border-box;
+    line-height: 1.5;
   }
+.token.keyword { color: #ff7b72; }
+.token.string { color: #a5d6ff; }
+.token.function { color: #d2a8ff; }
+.token.number { color: #79c0ff; }
+.token.comment { color: #8d96a0; font-style: italic; }
+.token.operator { color: #ff7b72; }
+.token.plain { color: #c9d1d9; }
+.token.punctuation { color: #c9d1d9; }
   canvas {
     position: absolute;
     top: 0;
     left: 0;
     display: none;
   }
- .cursor {
+.cursor {
     display: inline-block;
     width: 10px;
     background: #c9d1d9;
@@ -38,7 +45,6 @@
 <body>
 <div id="terminal"><span class="cursor"></span></div>
 <canvas id="canvas"></canvas>
-
 <script>
 const code = `import numpy as np
 import matplotlib.pyplot as plt
@@ -90,42 +96,70 @@ const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
+function highlightSyntax(line) {
+  return line
+.replace(/(import|def|return|for|in|if|else|return|def)/g, '<span class="token keyword">$1</span>')
+.replace(/(np|plt|animation)/g, '<span class="token function">$1</span>')
+.replace(/('.*?')/g, '<span class="token string">$1</span>')
+.replace(/(\d+)/g, '<span class="token number">$1</span>')
+.replace(/([+\-*=/()[\],:])/g, '<span class="token operator">$1</span>')
+.replace(/(#.*)/g, '<span class="token comment">$1</span>');
+}
+
 let i = 0;
+let currentLine = '';
+let lineIndex = 0;
+const lines = code.split('\n');
+
 function typeCode() {
-  if (i < code.length) {
-    cursor.insertAdjacentText('beforebegin', code[i]);
-    i++;
-    setTimeout(typeCode, 15);
-  } else {
+  if (lineIndex >= lines.length) {
     cursor.remove();
     setTimeout(startHeartParticles, 800);
+    return;
+  }
+  if (i < lines[lineIndex].length) {
+    currentLine += lines[lineIndex][i];
+    i++;
+    terminal.innerHTML = lines.slice(0, lineIndex)
+  .map(l => highlightSyntax(l)).join('<br>') +
+      '<br>' + highlightSyntax(currentLine) + '<span class="cursor"></span>';
+    setTimeout(typeCode, 20);
+  } else {
+    currentLine = '';
+    i = 0;
+    lineIndex++;
+    terminal.innerHTML = lines.slice(0, lineIndex)
+  .map(l => highlightSyntax(l)).join('<br>') + '<span class="cursor"></span>';
+    setTimeout(typeCode, 100);
   }
 }
 
 function heartFunc(t) {
   const x = 16 * Math.pow(Math.sin(t), 3);
   const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
-  return {x: x * 15, y: -y * 15};
+  return {x: x * 12, y: -y * 12};
 }
 
 let particles = [];
 let phase = 'heart';
+let frame = 0;
 
 function startHeartParticles() {
   terminal.style.display = 'none';
   canvas.style.display = 'block';
-
-  for (let t = 0; t < Math.PI * 2; t += 0.02) {
+  for (let i = 0; i < 800; i++) {
+    const t = (Math.PI * 2 / 800) * i + (Math.random() * 0.01);
     const p = heartFunc(t);
     particles.push({
-      x: canvas.width/2 + p.x,
-      y: canvas.height/2 + p.y,
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
       tx: canvas.width/2 + p.x,
       ty: canvas.height/2 + p.y,
-      ox: Math.random() * canvas.width,
-      oy: Math.random() * canvas.height,
-      size: 2,
-      color: '#ff4d4d'
+      vx: 0,
+      vy: 0,
+      size: 1.5 + Math.random() * 1.5,
+      alpha: 0.7 + Math.random() * 0.3,
+      arrived: false
     });
   }
   animate();
@@ -137,71 +171,103 @@ let pollen = [];
 function startButterflies() {
   phase = 'butterfly';
   particles = [];
-  for (let i = 0; i < 15; i++) {
+  for (let i = 0; i < 35; i++) {
     butterflies.push({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 2,
-      vy: (Math.random() - 0.5) * 2,
-      angle: 0
+      vx: (Math.random() - 0.5) * 1.5,
+      vy: (Math.random() - 0.5) * 1.5,
+      angle: Math.random() * Math.PI * 2,
+      wingPhase: Math.random() * Math.PI * 2,
+      size: 8 + Math.random() * 4
     });
   }
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 80; i++) {
     pollen.push({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.5,
-      vy: (Math.random() - 0.5) * 0.5,
-      alpha: Math.random()
+      vx: (Math.random() - 0.5) * 0.8,
+      vy: (Math.random() - 0.5) * 0.8,
+      alpha: 0.4 + Math.random() * 0.6
     });
   }
 }
 
-let frame = 0;
 function animate() {
-  ctx.fillStyle = 'rgba(13, 17, 23, 0.2)';
+  ctx.fillStyle = 'rgba(13, 17, 23, 0.25)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   if (phase === 'heart') {
+    let allArrived = true;
     particles.forEach(p => {
-      p.x += (p.tx - p.x) * 0.05;
-      p.y += (p.ty - p.y) * 0.05;
-      ctx.fillStyle = p.color;
+      p.vx += (p.tx - p.x) * 0.001;
+      p.vy += (p.ty - p.y) * 0.001;
+      p.vx *= 0.94;
+      p.vy *= 0.94;
+      p.x += p.vx;
+      p.y += p.vy;
+      if (Math.abs(p.x - p.tx) > 2 || Math.abs(p.y - p.ty) > 2) {
+        allArrived = false;
+      }
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = '#ff4d4d';
+      ctx.fillStyle = `rgba(255, 77, 77, ${p.alpha})`;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
       ctx.fill();
+      ctx.shadowBlur = 0;
     });
     frame++;
-    if (frame > 180) startButterflies();
+    if (frame > 240 && allArrived) {
+      setTimeout(startButterflies, 500);
+    }
   }
 
   if (phase === 'butterfly') {
     pollen.forEach(p => {
       p.x += p.vx;
       p.y += p.vy;
-      if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-      if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+      if (p.x < -10) p.x = canvas.width + 10;
+      if (p.x > canvas.width + 10) p.x = -10;
+      if (p.y < -10) p.y = canvas.height + 10;
+      if (p.y > canvas.height + 10) p.y = -10;
       ctx.fillStyle = `rgba(255, 215, 0, ${p.alpha})`;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 1.5, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
       ctx.fill();
     });
 
     butterflies.forEach(b => {
+      b.vx += (Math.random() - 0.5) * 0.1;
+      b.vy += (Math.random() - 0.5) * 0.1;
+      b.vx = Math.max(-2, Math.min(2, b.vx));
+      b.vy = Math.max(-2, Math.min(2, b.vy));
       b.x += b.vx;
       b.y += b.vy;
-      b.angle += 0.1;
-      if (b.x < 0 || b.x > canvas.width) b.vx *= -1;
-      if (b.y < 0 || b.y > canvas.height) b.vy *= -1;
+      b.wingPhase += 0.15;
+      if (b.x < -50) b.x = canvas.width + 50;
+      if (b.x > canvas.width + 50) b.x = -50;
+      if (b.y < -50) b.y = canvas.height + 50;
+      if (b.y > canvas.height + 50) b.y = -50;
 
       ctx.save();
       ctx.translate(b.x, b.y);
-      ctx.rotate(b.angle);
-      ctx.fillStyle = '#ffffff';
+      ctx.rotate(Math.atan2(b.vy, b.vx));
+      const wingAngle = Math.sin(b.wingPhase) * 0.6;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
       ctx.beginPath();
-      ctx.ellipse(-8, 0, 6, 12, 0, 0, Math.PI * 2);
-      ctx.ellipse(8, 0, 6, 12, 0, 0, Math.PI * 2);
+      ctx.ellipse(-b.size * 0.6, 0, b.size * 0.8, b.size, wingAngle, 0, Math.PI * 2);
       ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(b.size * 0.6, 0, b.size * 0.8, b.size, -wingAngle, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, b.size * 0.2, b.size * 0.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
       ctx.restore();
     });
   }
